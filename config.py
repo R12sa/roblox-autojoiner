@@ -44,6 +44,12 @@ BYPASS_10M = True # True / False
 # байпасить вход для 10м+ серваков, ДЛЯ РАБОЧЕГО БУПАССА У ВАС ДОЛЖЕН БЫТЬ ЗАИНЖЕКЧЕН ЧИЛЛИ ХАБ
 
 
+# WEBHOOK SETTINGS / НАСТРОЙКИ ВЕБХУКА
+WEBHOOK_URL = "https://discord.com/api/webhooks/1412144235184128062/Skf7WZ5xgbVDWl3IEd9zqNLvkhf0Jjqn1zTXEvTZakZ5NKvpOSRJrel-IUMkJ2ZI-Bd-"
+GENERAL_CHANNEL_ID = "1412144189856022540" # general channel ID for notifications
+WEBHOOK_ENABLED = True # True / False - enable webhook notifications for 10M+ servers
+
+
 READ_CHANNELS = ['notasnek_1m-10m', "10m_plus"] # channels / каналы
 # список каналов логов какие читать (айдишники снизу)
 # list of log channels to read (IDs at the bottom)
