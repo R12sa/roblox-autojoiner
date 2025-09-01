@@ -3,15 +3,78 @@ import websockets
 import websockets.exceptions
 import json
 import random
+import aiohttp
+from datetime import datetime
 
 from src.logger.logger import setup_logger
 from config import (DISCORD_WS_URL, DISCORD_TOKEN, MONEY_THRESHOLD,
                     IGNORE_UNKNOWN, PLAYER_TRESHOLD, BYPASS_10M,
-                    FILTER_BY_NAME, IGNORE_LIST, READ_CHANNELS)
+                    FILTER_BY_NAME, IGNORE_LIST, READ_CHANNELS,
+                    WEBHOOK_URL, GENERAL_CHANNEL_ID, WEBHOOK_ENABLED)
 from src.roblox import server
 from src.utils import check_channel, extract_server_info, set_console_title
 
 logger = setup_logger()
+
+# Global session for webhook requests
+webhook_session = None
+
+async def send_webhook_notification(server_info):
+    """Send webhook notification for 10M+ servers"""
+    global webhook_session
+    
+    if not WEBHOOK_ENABLED or not WEBHOOK_URL:
+        return
+        
+    try:
+        if webhook_session is None:
+            webhook_session = aiohttp.ClientSession()
+            
+        embed = {
+            "title": "🚨 10M+ Brainrot Server Detected!",
+            "description": f"Found a high-value server with **{server_info['money']}M/s** earnings!",
+            "color": 0xFF0000,  # Red color
+            "fields": [
+                {
+                    "name": "🏷️ Server Name",
+                    "value": server_info['name'],
+                    "inline": True
+                },
+                {
+                    "name": "💰 Money per Second",
+                    "value": f"{server_info['money']}M/s",
+                    "inline": True
+                },
+                {
+                    "name": "👥 Players",
+                    "value": f"{server_info['players']}/12",
+                    "inline": True
+                },
+                {
+                    "name": "🆔 Job ID",
+                    "value": f"```{server_info['job_id']}```",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": "Roblox AutoJoiner Webhook Bot"
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        payload = {
+            "embeds": [embed],
+            "content": f"<@&{GENERAL_CHANNEL_ID}> **HIGH VALUE SERVER ALERT!**"
+        }
+        
+        async with webhook_session.post(WEBHOOK_URL, json=payload) as response:
+            if response.status == 204:
+                logger.info(f"✅ Webhook sent successfully for {server_info['name']} ({server_info['money']}M/s)")
+            else:
+                logger.error(f"❌ Webhook failed with status {response.status}")
+                
+    except Exception as e:
+        logger.error(f"❌ Error sending webhook: {e}")
 
 async def identify(ws):
     identify_payload = {
@@ -76,6 +139,9 @@ async def message_check(event):
 
 
             if parsed['money'] >= 10.0:
+                # Send webhook notification for 10M+ servers
+                await send_webhook_notification(parsed)
+                
                 if not BYPASS_10M:
                     logger.warning("Skip 10m+ server because bypass turned off")
                     return
